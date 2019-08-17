@@ -6,7 +6,7 @@ import com.alibaba.fastjson.JSONObject;
 
 public interface IAppraisalService {
 
-	JSONObject getListForPage(Map<String, Object> param, int pageNum, int pageSize);
+	JSONObject getListForPage(Map<String, Object> param, int pageNum, int pageSize, String orderBy);
 
 	String saveRecord(JSONObject data);
 

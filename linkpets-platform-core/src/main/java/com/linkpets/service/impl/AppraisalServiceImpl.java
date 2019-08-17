@@ -12,13 +12,12 @@ import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.linkpets.core.dao.ZcAppraisalMapper;
 import com.linkpets.core.model.ZcAppraisal;
-import com.linkpets.core.model.ZcCommodity;
 import com.linkpets.service.IAppraisalService;
 
 /**
  * 
 * @ClassName: AppraisalServiceImpl 
-* @Description: TODO(这里用一句话描述这个类的作用) 
+* @Description: 测评
 * @author wando
 * @date 2019年8月11日 下午2:30:34 
 * @version V1.0 
@@ -30,9 +29,9 @@ public class AppraisalServiceImpl implements IAppraisalService{
 	ZcAppraisalMapper zcAppraisalMapper;
 
 	@Override
-	public JSONObject getListForPage(Map<String, Object> param, int pageNum, int pageSize) {
+	public JSONObject getListForPage(Map<String, Object> param, int pageNum, int pageSize, String orderBy) {
 		JSONObject result = new JSONObject();
-		PageHelper.startPage(pageNum, pageSize);
+		PageHelper.startPage(pageNum, pageSize, orderBy);
 		List<Map<String, Object>> list = zcAppraisalMapper.getList(param);
 		PageInfo<Map<String, Object>> page = new PageInfo<Map<String, Object>>(list);
 		result.put("page", page.getPageNum());

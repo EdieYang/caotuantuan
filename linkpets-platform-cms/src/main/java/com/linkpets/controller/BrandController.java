@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.alibaba.fastjson.JSONObject;
 import com.linkpets.core.model.ZcBrand;
+import com.linkpets.core.model.ZcBrandCollect;
 import com.linkpets.service.IBrandService;
 
 @RestController
@@ -62,10 +63,31 @@ public class BrandController {
 			@RequestParam(value = "sort", required = false, defaultValue = "asc") String sort) {
 		Map<String, Object> param = new HashMap<String, Object>();
 		param.put("search", search);
-		JSONObject data = brandService.getListForPage(param, pageNum, pageSize);
+		JSONObject data = brandService.getListForPage(param, pageNum, pageSize, sortCol + " " + sort);
 		return data;
 	}
 	
-	
+	/**
+	 * 
+	* @Title: collectBrand 
+	* @Description: 关注/取关品牌
+	* @param @param collect
+	* @return void
+	* @author wando 
+	* @throws
+	* @date 2019年8月17日 下午5:49:02 
+	* @version V1.0   
+	 */
+	@PostMapping(value = "/collect")
+	public void collectBrand(
+			@RequestBody ZcBrandCollect collect) {
+		if(null != collect.getIsVaild() && collect.getIsVaild() > 0) {
+			//加关注
+			brandService.addCollect(collect);
+		}else {
+			//取消关注
+			brandService.delCollect(collect);
+		}
+	}
 
 }

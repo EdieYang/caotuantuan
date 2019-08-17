@@ -56,6 +56,7 @@ public class AppraisalController {
 	 * 
 	* @Title: getList 
 	* @Description: 获取测评列表(分页、排序、模糊搜索)
+	* @param @param userId
 	* @param @param pageNum
 	* @param @param pageSize
 	* @param @param search
@@ -69,7 +70,8 @@ public class AppraisalController {
 	* @version V1.0   
 	 */
 	@GetMapping(value = "/list")
-	public JSONObject getList(@RequestParam(value = "pageNum", required = false, defaultValue = "1") int pageNum, 
+	public JSONObject getList(@RequestParam(value = "userId", required = true) String userId, 
+			@RequestParam(value = "pageNum", required = false, defaultValue = "1") int pageNum, 
 			@RequestParam(value = "pageSize", required = false, defaultValue = "10000") int pageSize,
 			@RequestParam(value = "search", required = false, defaultValue = "") String search,
 			@RequestParam(value = "brandId", required = false, defaultValue = "") String brandId,
@@ -77,10 +79,11 @@ public class AppraisalController {
 			@RequestParam(value = "sortCol", required = false, defaultValue = "createTime") String sortCol,
 			@RequestParam(value = "sort", required = false, defaultValue = "desc") String sort) {
 		Map<String, Object> param = new HashMap<String, Object>();
+		param.put("userId", userId);
 		param.put("search", search);
 		param.put("brandId", brandId);
 		param.put("commodityId", commodityId);
-		JSONObject data = appraisalService.getListForPage(param, pageNum, pageSize);
+		JSONObject data = appraisalService.getListForPage(param, pageNum, pageSize, sortCol + " " + sort);
 		return data;
 	}
 	

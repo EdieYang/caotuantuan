@@ -124,49 +124,101 @@
 	    t_a.create_time,
 	    '%Y-%m-%d %H:%i:%s'
 	  ) AS createTime,
-	  COUNT(DISTINCT t_aa.user_id) AS appreciateCount,
-	  COUNT(DISTINCT t_af.user_id) AS favoriteCount,
-	  SUBSTRING_INDEX(GROUP_CONCAT(DISTINCT t_ai.img_url ORDER BY t_ai.pk_id ASC),',',1) AS img,
-	  GROUP_CONCAT(DISTINCT t_at.tag) AS tag,
-	  GROUP_CONCAT(DISTINCT t_c.commodity_name) AS commodityName,
-	  GROUP_CONCAT(DISTINCT t_b.brand_name) AS brandName
+	  t_ai.img,
+	  t_aa.appreciateCount,
+	  t_aa.appreciateFlag,
+	  t_af.favoriteCount,
+	  t_af.favoriteFlag,
+	  t_at.tag,
+	  t_ac.commodityName,
+	  t_ac.brandName 
 	FROM
 	  zc_appraisal t_a 
-	  LEFT JOIN zc_appraisal_appreciate t_aa 
+	  LEFT JOIN (SELECT 
+		  appraisal_id,
+		  COUNT(DISTINCT user_id) AS appreciateCount,
+		  SUM(CASE user_id WHEN #{userId,jdbcType=VARCHAR} THEN 1 ELSE 0 END) AS appreciateFlag
+		FROM
+		  zc_appraisal_appreciate 
+		WHERE is_vaild = 1 
+		GROUP BY appraisal_id ) t_aa
 	    ON t_a.appraisal_id = t_aa.appraisal_id 
-	    AND t_aa.is_vaild = 1 
-	  LEFT JOIN zc_appraisal_favorite t_af 
+	  LEFT JOIN (SELECT 
+		  appraisal_id,
+		  COUNT(DISTINCT user_id) AS favoriteCount,
+		  SUM(CASE user_id WHEN #{userId,jdbcType=VARCHAR} THEN 1 ELSE 0 END) AS favoriteFlag
+		FROM
+		  zc_appraisal_favorite 
+		WHERE is_vaild = 1 
+		GROUP BY appraisal_id ) t_af
 	    ON t_a.appraisal_id = t_af.appraisal_id 
-	    AND t_af.is_vaild = 1 
-	  LEFT JOIN zc_appraisal_tag t_at 
+	  LEFT JOIN (SELECT 
+		  appraisal_id,
+		  GROUP_CONCAT(DISTINCT tag) AS tag
+		FROM
+		  zc_appraisal_tag 
+		WHERE is_vaild = 1 
+		GROUP BY appraisal_id ) t_at 
 	    ON t_a.appraisal_id = t_at.appraisal_id 
-	    AND t_at.is_vaild = 1 
-	  LEFT JOIN zc_appraisal_img t_ai 
+	  LEFT JOIN (SELECT 
+		  appraisal_id,
+		  SUBSTRING_INDEX(
+		    GROUP_CONCAT(DISTINCT img_url 
+		      ORDER BY pk_id ASC),
+		    ',',
+		    1
+		  ) AS img 
+		FROM
+		  zc_appraisal_img 
+		GROUP BY appraisal_id ) t_ai 
 	    ON t_a.appraisal_id = t_ai.appraisal_id 
 	  LEFT JOIN cms_user t_cr 
 	    ON t_a.create_by = t_cr.user_id 
-	    LEFT JOIN zc_appraisal_commodity t_ac
-	    ON t_a.appraisal_id = t_ac.appraisal_id
-	    AND t_ac.is_vaild = 1
-	    LEFT JOIN zc_commodity t_c
-	    ON t_ac.commodity_id = t_c.commodity_id
-	    LEFT JOIN zc_brand t_b
-	    ON t_c.brand_id = t_b.brand_id
+	  LEFT JOIN (SELECT 
+		  t_ac.appraisal_id ,
+		  GROUP_CONCAT(DISTINCT t_c.commodity_name) AS commodityName,
+		  GROUP_CONCAT(DISTINCT t_b.brand_name) AS brandName 
+		FROM
+		  zc_appraisal_commodity t_ac 
+		  LEFT JOIN zc_commodity t_c 
+		    ON t_ac.commodity_id = t_c.commodity_id 
+		  LEFT JOIN zc_brand t_b 
+		    ON t_c.brand_id = t_b.brand_id 
+		WHERE t_ac.is_vaild = 1 
+		GROUP BY t_ac.appraisal_id ) t_ac 
+	    ON t_a.appraisal_id = t_ac.appraisal_id 
 	WHERE t_a.is_valid = 1 
-	<if test="null != brandId and '' != brandId">
-		AND t_b.brand_id = #{brandId,jdbcType=VARCHAR}
+	<if test="null != brandId or null != commodityId">
+		AND t_a.appraisal_id in (SELECT DISTINCT 
+			  t_ac.appraisal_id 
+			FROM
+			  zc_appraisal_commodity t_ac 
+			  LEFT JOIN zc_commodity t_c 
+			    ON t_ac.commodity_id = t_c.commodity_id 
+			  LEFT JOIN zc_brand t_b 
+			    ON t_c.brand_id = t_b.brand_id 
+			WHERE t_ac.is_vaild = 1 
+			<if test="null != brandId and '' != brandId">
+				AND t_b.brand_id = #{brandId,jdbcType=VARCHAR}
+			</if>
+			<if test="null != commodityId and '' != commodityId">
+				AND t_c.commodity_id =#{commodityId,jdbcType=VARCHAR}
+			</if>
+		)
 	</if>
-	<if test="null != commodityId and '' != commodityId">
-		AND t_c.commodity_id =#{commodityId,jdbcType=VARCHAR}
+	<if test="null != appreciateBy and '' != appreciateBy">
+		AND t_aa.appreciateFlag &gt; 0
+	</if>
+	<if test="null != favoriteBy and '' != favoriteBy">
+		AND t_af.favoriteFlag &gt; 0
 	</if>
 	<if test="null != search and '' != search">
 		AND (
 			t_a.title LIKE CONCAT('%',#{search,jdbcType=VARCHAR},'%')
-			OR t_at.tag = #{search,jdbcType=VARCHAR}
-			OR t_c.commodity_name= #{search,jdbcType=VARCHAR}
-			OR t_b.brand_name = #{search,jdbcType=VARCHAR}
+			OR t_at.tag LIKE CONCAT('%',#{search,jdbcType=VARCHAR},'%')
+			OR t_ac.commodityName LIKE CONCAT('%',#{search,jdbcType=VARCHAR},'%')
+			OR t_ac.brandName LIKE CONCAT('%',#{search,jdbcType=VARCHAR},'%')
 			)
 	</if>
-	GROUP BY t_a.appraisal_id 
   </select>
 </mapper>
